@@ -1,1 +1,17 @@
 # Stock Simulation Engine
+
+Rust API using axum and stochastic mathematician models to simulate stocks in realtime.
+
+Implemented features
+- [ ] API
+    - [x] Axum template
+    - [x] Routing
+    - [ ] Data models
+- [ ] Websocket
+    - [ ] Ws template
+    - [ ] Real time traffic data
+- [ ] Engine
+    - [ ] State behaviours
+    - [ ] Core algorithms
+- [ ] Testing
+- [ ] Swagger
