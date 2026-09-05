@@ -1,5 +1,7 @@
-use dotenv::dotenv;
 use std::env;
+
+use dotenv::dotenv;
+
 mod routes;
 
 #[tokio::main]

@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 # Web framework
 
-axum = { version = "0.8", features = ["macros"] }
+axum = { version = "0.8.7", features = ["macros", "ws"] }
 axum-extra = { version = "0.10", features = ["typed-header"] }
 tokio = { version = "1", features = ["full"] }
 tower = { version = "0.5", features = ["timeout", "limit", "util"] }
@@ -38,3 +38,4 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15.0"
+futures-util = "0.3.34"

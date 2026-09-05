@@ -8,7 +8,7 @@ Implemented features
     - [x] Routing
     - [ ] Data models
 - [ ] Websocket
-    - [ ] Ws template
+    - [X] Ws template
     - [ ] Real time traffic data
 - [ ] Engine
     - [ ] State behaviours
