@@ -7,11 +7,14 @@ Implemented features
     - [x] Axum template
     - [x] Routing
     - [ ] Data models
+    - [ ] User Authentication
+    - [ ] Payload
 - [ ] Websocket
     - [X] Ws template
     - [ ] Real time traffic data
 - [ ] Engine
     - [ ] State behaviours
     - [ ] Core algorithms
+
 - [ ] Testing
 - [ ] Swagger
