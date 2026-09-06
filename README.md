@@ -15,6 +15,7 @@ Implemented features
 - [ ] Engine
     - [ ] State behaviours
     - [ ] Core algorithms
-
+- [ ] Pipeline
+    - [ ] Github action
 - [ ] Testing
 - [ ] Swagger
