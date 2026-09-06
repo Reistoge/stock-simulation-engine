@@ -17,6 +17,8 @@ tower-http = { version = "0.6", features = [
     "request-id",
     "timeout",
 ] }
+sea-orm = { version = "2.0.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ] }
+sea-orm-migration = { version = "*", features = ["cli", "sqlx-postgres", "runtime-tokio-rustls"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -39,3 +41,4 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15.0"
 futures-util = "0.3.34"
+log = "0.4.34"
