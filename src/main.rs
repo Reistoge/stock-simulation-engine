@@ -3,6 +3,8 @@ use std::env;
 use dotenv::dotenv;
 
 mod routes;
+mod controller;
+mod model;
 
 #[tokio::main]
 async fn main() {

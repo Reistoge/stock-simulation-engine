@@ -4,7 +4,8 @@ use axum::{Router, routing::{any, get}};
 
 
 mod stocks;
-mod websocket; 
+mod websocket;
+mod users; 
 
 
 pub fn build_routes() -> Router {
@@ -12,5 +13,6 @@ pub fn build_routes() -> Router {
         .merge(Router::new().route("/", get(|| async { "Hello, World!" })))
         .merge(stocks::init())
         .merge(websocket::init())
+        .merge(users::init())
 }
 
