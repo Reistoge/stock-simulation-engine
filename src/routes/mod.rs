@@ -1,11 +1,7 @@
-
-
-use axum::{Router, routing::{any, get}};
-
+use axum::{Router, routing::get};
 
 mod stocks;
-mod websocket; 
-
+mod websocket;
 
 pub fn build_routes() -> Router {
     Router::new()
@@ -13,4 +9,3 @@ pub fn build_routes() -> Router {
         .merge(stocks::init())
         .merge(websocket::init())
 }
-
