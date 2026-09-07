@@ -2,15 +2,12 @@ use std::env;
 
 use dotenv::dotenv;
 
-mod routes;
-mod controller;
-mod model;
-
+use stock_simulation_engine::{db, routes};
 #[tokio::main]
 async fn main() {
     println!("-- Stock simulation Engine --");
     dotenv().ok();
-
+    db::init().await.unwrap();
     let version = env::var("VERSION").expect("VERSION VAR should be set");
     println!("VERSION: {version}");
     // build our application with a single route

@@ -2,10 +2,10 @@
 name = "stock-simulation-engine"
 version = "0.1.0"
 edition = "2024"
+default-run = "stock-simulation-engine"
 
 [dependencies]
 # Web framework
-
 axum = { version = "0.8.7", features = ["macros", "ws"] }
 axum-extra = { version = "0.10", features = ["typed-header"] }
 tokio = { version = "1", features = ["full"] }
@@ -39,3 +39,14 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 dotenv = "0.15.0"
 futures-util = "0.3.34"
+toasty = { version = "0.10.0", features = ["jiff", "postgresql", "serde"] }
+jiff = "0.2.35"
+toasty-cli = "0.10.0"
+
+[[bin]]
+name = "stock-simulation-engine"
+path = "src/main.rs"
+
+[[bin]]
+name = "cli"
+path = "src/bin/cli.rs"
