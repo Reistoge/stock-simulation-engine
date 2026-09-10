@@ -1,16 +1,18 @@
-use axum::http::{HeaderMap, HeaderValue, StatusCode};
+use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use std::result::Result::Ok;
 
-use crate::model::{Claims, LoginInfo, LoginResponse};
+use crate::auth::types::Claims;
+
+use super::types::{LoginResponse,LoginInfo};
 
 pub async fn login_handler(Json(login_info): Json<LoginInfo>) -> Result<Json<LoginResponse>, StatusCode>{
     let username = &login_info.username;
     let password = &login_info.password;
-    let is_Valid = is_valid_user(username, password);
+    let is_valid = is_valid_user(username, password);
     
-    if is_Valid {
+    if is_valid {
         let claims = Claims{
             sub : username.clone(),
             exp : (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize

@@ -42,6 +42,9 @@ futures-util = "0.3.34"
 toasty = { version = "0.10.0", features = ["jiff", "postgresql", "serde"] }
 jiff = "0.2.35"
 toasty-cli = "0.10.0"
+utoipa-axum = "0.2.0"
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+utoipa = "5.5.0"
 
 [[bin]]
 name = "stock-simulation-engine"
