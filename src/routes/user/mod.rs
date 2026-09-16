@@ -1,12 +1,13 @@
 use axum::{
     Json,
+    extract::State,
     http::{HeaderMap, StatusCode},
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::auth::{
-    types::{LoginInfo, LoginResponse},
-    validation::{get_info_handler, login_handler},
+    types::{LoginInfo, LoginResponse, RegisterInfo, RegisterResponse},
+    validation::{get_info_handler, login_handler, register_handler},
 };
 /*
  POST USER LOGIN
@@ -23,9 +24,12 @@ use crate::auth::{
         (status = 200, description = "List all stocks successfully", body = [LoginResponse])
     )
 )]
-pub async fn login(Json(login_info): Json<LoginInfo>) -> Result<Json<LoginResponse>, StatusCode> {
+pub async fn login(
+    State(db): State<toasty::Db>,
+    Json(login_info): Json<LoginInfo>,
+) -> Result<Json<LoginResponse>, StatusCode> {
     println!("Hit the POST login controller");
-    let r = match login_handler(Json(login_info)).await {
+    let r = match login_handler(db, Json(login_info)).await {
         Ok(r) => r,
         Err(err) => {
             return Err(err.into());
@@ -59,7 +63,39 @@ pub async fn get_info(header_map: HeaderMap) -> Result<Json<String>, StatusCode>
     Ok(r)
 }
 
-pub fn init() -> OpenApiRouter {
-    // routes! macro handles multiple HTTP methods on the same path automatically
-    OpenApiRouter::new().routes(routes!(login, get_info))
+/*
+ POST USER REGISTER
+*/
+#[utoipa::path(
+    post,
+    path ="/register",
+    tag = "user",
+    request_body = RegisterInfo,
+    responses(
+        (status = 200, description = "User registered successfully", body = [RegisterResponse])
+    )
+)]
+pub async fn register(
+    State(db): State<toasty::Db>,
+    Json(register_info): Json<RegisterInfo>,
+) -> Result<Json<RegisterResponse>, StatusCode> {
+    println!("Hit the POST register controller");
+    let r = match register_handler(db, Json(register_info)).await {
+        Ok(r) => r,
+        Err(err) => {
+            return Err(err.into());
+        }
+    };
+    Ok(r)
+}
+
+pub fn init() -> OpenApiRouter<toasty::Db> {
+    // routes! groups handlers that share the SAME path but different HTTP
+    // methods. login/get_info/register are on different paths, so each needs
+    // its own .routes(routes!(...)) call — merging them together here caused
+    // both POST handlers (login, register) to collide in one method router.
+    OpenApiRouter::new()
+        .routes(routes!(login))
+        .routes(routes!(get_info))
+        .routes(routes!(register))
 }

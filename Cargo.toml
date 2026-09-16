@@ -45,6 +45,7 @@ toasty-cli = "0.10.0"
 utoipa-axum = "0.2.0"
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 utoipa = "5.5.0"
+argon2 = "0.6.0"
 
 [[bin]]
 name = "stock-simulation-engine"

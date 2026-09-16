@@ -6,7 +6,7 @@ use jiff::Timestamp;
 pub struct User {
     #[key]
     #[auto]
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
 
     #[column(type = varchar(100))]
     name: String,
@@ -15,7 +15,7 @@ pub struct User {
     #[column(type = varchar(320))]
     email: String,
 
-    password: String,
+    pub password: String,
 
     #[has_one]
     profile: toasty::Deferred<Option<Profile>>,

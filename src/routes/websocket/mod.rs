@@ -12,7 +12,7 @@ use axum::{
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::mpsc;
 
-pub fn init() -> Router {
+pub fn init() -> Router<toasty::Db> {
     Router::new().route("/ws/{*wildcard}", any(handler))
 }
 async fn handler(Path(wildcard): Path<String>, ws: WebSocketUpgrade) -> Response {
