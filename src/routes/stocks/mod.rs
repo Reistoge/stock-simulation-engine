@@ -50,7 +50,7 @@ async fn post_stocks(Json(payload): Json<CreateStockPayload>) -> String {
     format!("Created stock {} at ${}", payload.ticker, payload.price)
 }
 
-pub fn init() -> OpenApiRouter {
+pub fn init() -> OpenApiRouter<toasty::Db> {
     // routes! macro handles multiple HTTP methods on the same path automatically
     OpenApiRouter::new().routes(routes!(get_stocks, post_stocks))
 }
