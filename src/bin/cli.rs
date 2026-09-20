@@ -1,5 +1,7 @@
+#![cfg_attr(coverage_nightly, coverage(off))]
 use dotenv::dotenv;
 use toasty_cli::{Config, ToastyCli};
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = Config::load()?;
