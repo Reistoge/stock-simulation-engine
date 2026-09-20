@@ -106,3 +106,125 @@ pub async fn get_info_handler(header_map: HeaderMap) -> Result<Json<String>, Sta
 
     Err(StatusCode::UNAUTHORIZED)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        auth::{types::RegisterInfo, validation::register_handler},
+        repositories::user::MockUserRepository,
+    };
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    use axum::{Json, http::StatusCode};
+    use mockall::predicate::{always, eq};
+    use uuid::Uuid;
+
+    fn register_info(username: &str, email: &str, password: &str) -> RegisterInfo {
+        RegisterInfo {
+            username: username.to_string(),
+            email: email.to_string(),
+            password: password.to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn register_creates_user_and_returns_id() {
+        let id = Uuid::new_v4();
+        let mut repo = MockUserRepository::new();
+
+        repo.expect_email_exists()
+            .with(eq("ada@example.com"))
+            .times(1)
+            .returning(|_| false);
+        repo.expect_username_exists()
+            .with(eq("ada"))
+            .times(1)
+            .returning(|_| false);
+        repo.expect_create()
+            .with(eq("ada"), eq("ada@example.com"), always())
+            .times(1)
+            .returning(move |_, _, password| {
+                let hash = PasswordHash::new(password).expect("handler must hash the password");
+                Argon2::default()
+                    .verify_password(b"correct horse battery staple", &hash)
+                    .expect("stored hash must verify against the plaintext");
+                Ok(id)
+            });
+
+        let response = register_handler(
+            &mut repo,
+            Json(register_info(
+                "ada",
+                "ada@example.com",
+                "correct horse battery staple",
+            )),
+        )
+        .await
+        .expect("registration should succeed");
+
+        assert_eq!(response.0.id, id.to_string());
+    }
+
+    #[tokio::test]
+    async fn register_rejects_duplicate_email() {
+        let mut repo = MockUserRepository::new();
+
+        repo.expect_email_exists().times(1).returning(|_| true);
+        repo.expect_username_exists().times(0);
+        repo.expect_create().times(0);
+
+        let response = register_handler(
+            &mut repo,
+            Json(register_info(
+                "ada",
+                "ada@example.com",
+                "correct horse battery staple",
+            )),
+        )
+        .await;
+
+        assert!(matches!(response, Err(StatusCode::CONFLICT)));
+    }
+
+    #[tokio::test]
+    async fn register_rejects_duplicate_username() {
+        let mut repo = MockUserRepository::new();
+
+        repo.expect_email_exists().times(1).returning(|_| false);
+        repo.expect_username_exists().times(1).returning(|_| true);
+        repo.expect_create().times(0);
+
+        let response = register_handler(
+            &mut repo,
+            Json(register_info(
+                "ada",
+                "ada@example.com",
+                "correct horse battery staple",
+            )),
+        )
+        .await;
+
+        assert!(matches!(response, Err(StatusCode::CONFLICT)));
+    }
+
+    #[tokio::test]
+    async fn register_rejects_invalid_payload_without_touching_db() {
+        let mut repo = MockUserRepository::new();
+
+        repo.expect_email_exists().times(0);
+        repo.expect_username_exists().times(0);
+        repo.expect_create().times(0);
+
+        let response = register_handler(
+            &mut repo,
+            Json(register_info(
+                "ada",
+                "not-an-email",
+                "correct horse battery staple",
+            )),
+        )
+        .await;
+
+        assert!(matches!(response, Err(StatusCode::BAD_REQUEST)));
+    }
+}

@@ -1,7 +1,7 @@
+#![cfg_attr(coverage_nightly, coverage(off))]
 use toasty::embed_migrations;
 
 pub mod schema;
-
 pub async fn init() -> toasty::Result<toasty::Db> {
     let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgresql::memory:".to_string());
     let db = match toasty::Db::builder()

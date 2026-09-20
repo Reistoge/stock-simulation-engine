@@ -48,13 +48,17 @@ utoipa = "5.5.0"
 argon2 = "0.6.0"
 async-trait = "0.1"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
 [dev-dependencies]
 mockall = "0.15.0"
 
 [[bin]]
-name = "stock-simulation-engine"
 path = "src/main.rs"
+name = "stock-simulation-engine"
 
 [[bin]]
 name = "cli"
 path = "src/bin/cli.rs"
+test = false

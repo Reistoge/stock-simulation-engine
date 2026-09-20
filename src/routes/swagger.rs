@@ -1,4 +1,5 @@
 // swagger.rs
+#![cfg_attr(coverage_nightly, coverage(off))]
 use utoipa::{
     Modify, OpenApi,
     openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
