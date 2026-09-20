@@ -7,7 +7,7 @@ use std::result::Result::Ok;
 use validator::Validate;
 
 use crate::auth::types::Claims;
-use crate::db::schema::user::User;
+use crate::repositories::user::UserRepository;
 
 use super::types::{LoginInfo, LoginResponse, RegisterInfo, RegisterResponse};
 
@@ -16,103 +16,67 @@ fn jwt_secret() -> String {
 }
 
 pub async fn login_handler(
-    mut db: toasty::Db,
+    repo: &mut dyn UserRepository,
     Json(login_info): Json<LoginInfo>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
-    let email: &String = &login_info.email;
-    let password = &login_info.password;
-    let is_valid: bool = is_valid_user(&mut db, email, password).await;
-
-    if is_valid {
-        let claims = Claims {
-            sub: email.clone(),
-            exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
-        };
-        let token = match encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(jwt_secret().as_ref()),
-        ) {
-            Ok(tok) => tok,
-            Err(e) => {
-                eprintln!("Error generating token {}", e);
-                return Err(StatusCode::INTERNAL_SERVER_ERROR);
-            }
-        };
-        Ok(Json(LoginResponse { token }))
-    } else {
-        Err(StatusCode::UNAUTHORIZED)
-    }
-}
-
-pub async fn is_valid_user(executor: &mut dyn toasty::Executor, email: &str, password: &str) -> bool {
-    let user = match User::get_by_email(executor, email).await {
+    let user = match repo.find_by_email(&login_info.email).await {
         Ok(user) => user,
-        Err(_) => return false,
+        Err(_) => return Err(StatusCode::UNAUTHORIZED),
     };
     let parsed_hash = match PasswordHash::new(&user.password) {
         Ok(hash) => hash,
-        Err(_) => return false,
+        Err(_) => return Err(StatusCode::UNAUTHORIZED),
     };
-
-    Argon2::default()
-        .verify_password(password.as_bytes(), &parsed_hash)
+    if !Argon2::default()
+        .verify_password(login_info.password.as_bytes(), &parsed_hash)
         .is_ok()
-}
-
-pub async fn is_duplicate_email(executor: &mut dyn toasty::Executor, email: &str) -> bool {
-    matches!(User::get_by_email(executor, email).await, Ok(_))
-}
-pub async fn is_duplicate_username(executor: &mut dyn toasty::Executor, username: &str) -> bool {
-    let users = match User::filter(User::fields().name().eq(username))
-        .exec(executor)
-        .await
     {
-        Ok(users) => users,
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let claims = Claims {
+        sub: login_info.email.clone(),
+        exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
+    };
+    let token = match encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(jwt_secret().as_ref()),
+    ) {
+        Ok(tok) => tok,
         Err(e) => {
-            eprintln!("Error checking duplicate username {}", e);
-            return false;
+            eprintln!("Error generating token {}", e);
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
     };
-    !users.is_empty()
+    Ok(Json(LoginResponse { token }))
 }
 
 pub async fn register_handler(
-    mut db: toasty::Db,
+    repo: &mut dyn UserRepository,
     Json(register_info): Json<RegisterInfo>,
 ) -> Result<Json<RegisterResponse>, StatusCode> {
     register_info.validate().map_err(|_| StatusCode::BAD_REQUEST)?;
-    let username: &String = &register_info.username;
-    let password: &String = &register_info.password;
-    let email: &String = &register_info.email;
-    let duplicate_email: bool = is_duplicate_email(&mut db, email).await;
-    if duplicate_email {
+    if repo.email_exists(&register_info.email).await {
         return Err(StatusCode::CONFLICT);
     }
-    let duplicate_username: bool = is_duplicate_username(&mut db, username).await;
-    if duplicate_username {
+    if repo.username_exists(&register_info.username).await {
         return Err(StatusCode::CONFLICT);
     }
     let hash = Argon2::default()
-        .hash_password(password.as_bytes())
+        .hash_password(register_info.password.as_bytes())
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .to_string();
 
+    let id = repo
+        .create(&register_info.username, &register_info.email, &hash)
+        .await
+        .map_err(|e| {
+            eprintln!("Error creating user {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-    let user = User::create()
-    .name(username)
-    .email(email)
-    .password(hash)
-    .exec(&mut db)
-    .await
-    .map_err(|e| {
-        eprintln!("Error creating user {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
-
-    
-   Ok(Json(RegisterResponse { id: user.id.to_string() }))
-
+    Ok(Json(RegisterResponse { id: id.to_string() }))
 }
 
 pub async fn get_info_handler(header_map: HeaderMap) -> Result<Json<String>, StatusCode> {

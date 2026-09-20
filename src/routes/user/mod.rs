@@ -9,6 +9,7 @@ use crate::auth::{
     types::{LoginInfo, LoginResponse, RegisterInfo, RegisterResponse},
     validation::{get_info_handler, login_handler, register_handler},
 };
+use crate::routes::AppState;
 /*
  POST USER LOGIN
 */
@@ -25,11 +26,11 @@ use crate::auth::{
     )
 )]
 pub async fn login(
-    State(db): State<toasty::Db>,
+    State(mut app): State<AppState>,
     Json(login_info): Json<LoginInfo>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
     println!("Hit the POST login controller");
-    let r = match login_handler(db, Json(login_info)).await {
+    let r = match login_handler(&mut app.user_repository, Json(login_info)).await {
         Ok(r) => r,
         Err(err) => {
             return Err(err.into());
@@ -76,11 +77,11 @@ pub async fn get_info(header_map: HeaderMap) -> Result<Json<String>, StatusCode>
     )
 )]
 pub async fn register(
-    State(db): State<toasty::Db>,
+    State(mut app): State<AppState>,
     Json(register_info): Json<RegisterInfo>,
 ) -> Result<Json<RegisterResponse>, StatusCode> {
     println!("Hit the POST register controller");
-    let r = match register_handler(db, Json(register_info)).await {
+    let r = match register_handler(&mut app.user_repository, Json(register_info)).await {
         Ok(r) => r,
         Err(err) => {
             return Err(err.into());
@@ -89,7 +90,7 @@ pub async fn register(
     Ok(r)
 }
 
-pub fn init() -> OpenApiRouter<toasty::Db> {
+pub fn init() -> OpenApiRouter<AppState> {
     // routes! groups handlers that share the SAME path but different HTTP
     // methods. login/get_info/register are on different paths, so each needs
     // its own .routes(routes!(...)) call — merging them together here caused
