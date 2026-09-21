@@ -6,11 +6,10 @@ use axum::{
 };
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::auth::{
-    types::{LoginInfo, LoginResponse, RegisterInfo, RegisterResponse},
-    validation::{get_info_handler, login_handler, register_handler},
-};
+use crate::auth::types::{LoginInfo, LoginResponse, RegisterInfo, RegisterResponse};
 use crate::routes::AppState;
+use crate::service::user::UserService;
+
 /*
  POST USER LOGIN
 */
@@ -24,21 +23,17 @@ use crate::routes::AppState;
     )
 )]
 pub async fn login(
-    State(mut app): State<AppState>,
+    State(app): State<AppState>,
     Json(login_info): Json<LoginInfo>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
     println!("Hit the POST login controller");
-    let r = match login_handler(&mut app.user_repository, Json(login_info)).await {
-        Ok(r) => r,
-        Err(err) => {
-            return Err(err.into());
-        }
-    };
-    Ok(r)
+    let service = UserService::new(app.user_repository);
+    let r = service.login(login_info).await?;
+    Ok(Json(r))
 }
 
 /*
-  GET USER INFO
+ GET USER INFO
 */
 #[utoipa::path(
     get,
@@ -51,15 +46,20 @@ pub async fn login(
         (status = 200, description = "User info retrieved successfully", body = String)
     )
 )]
-pub async fn get_info(header_map: HeaderMap) -> Result<Json<String>, StatusCode> {
+pub async fn get_info(
+    State(app): State<AppState>,
+    header_map: HeaderMap,
+) -> Result<Json<String>, StatusCode> {
     println!("Hit the get info controller");
-    let r = match get_info_handler(header_map).await {
-        Ok(r) => r,
-        Err(err) => {
-            return Err(err.into());
-        }
-    };
-    Ok(r)
+    let token = header_map
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let service = UserService::new(app.user_repository);
+    let info = service.get_info(token).await?;
+    Ok(Json(info))
 }
 
 /*
@@ -75,24 +75,16 @@ pub async fn get_info(header_map: HeaderMap) -> Result<Json<String>, StatusCode>
     )
 )]
 pub async fn register(
-    State(mut app): State<AppState>,
+    State(app): State<AppState>,
     Json(register_info): Json<RegisterInfo>,
 ) -> Result<Json<RegisterResponse>, StatusCode> {
     println!("Hit the POST register controller");
-    let r = match register_handler(&mut app.user_repository, Json(register_info)).await {
-        Ok(r) => r,
-        Err(err) => {
-            return Err(err.into());
-        }
-    };
-    Ok(r)
+    let service = UserService::new(app.user_repository);
+    let r = service.register(register_info).await?;
+    Ok(Json(r))
 }
 
 pub fn init() -> OpenApiRouter<AppState> {
-    // routes! groups handlers that share the SAME path but different HTTP
-    // methods. login/get_info/register are on different paths, so each needs
-    // its own .routes(routes!(...)) call — merging them together here caused
-    // both POST handlers (login, register) to collide in one method router.
     OpenApiRouter::new()
         .routes(routes!(login))
         .routes(routes!(get_info))
