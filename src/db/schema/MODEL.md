@@ -65,9 +65,9 @@ pub mod new_entity; <-- your new entity !
 
 # Workflow
 1. Edit your model structs (add a field, change a type, add an index)
-2. Run ```migration generate --name describe_change```
+2. Run ```cargo run --bin cli -- migration generate```
 3. Review the generated SQL file
-4. Run ```migration apply to update the database```
+4. Run ```cargo run --bin cli -- migration apply ``` to update the database
 5. Commit the migration files, snapshot, and updated history alongside your code
 
 
