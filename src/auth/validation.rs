@@ -58,8 +58,13 @@ mod tests {
     use crate::auth::types::RegisterInfo;
     use validator::Validate;
 
+    fn setup() {
+        unsafe { std::env::set_var("JWT_SECRET", "testsecret") };
+    }
+
     #[test]
     fn hash_password_and_verify_roundtrip() {
+        setup();
         let password = "test_password_123";
         let hash = hash_password(password).expect("hashing should succeed");
         let valid = verify_password(password, &hash).expect("verification should succeed");
