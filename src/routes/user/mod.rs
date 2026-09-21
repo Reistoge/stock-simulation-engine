@@ -18,9 +18,6 @@ use crate::routes::AppState;
     post,
     path ="/login",
     tag = "user",
-    params(
-        ("authorization" = String, Header, description = "Bearer token") // Document header
-    ),
     request_body = LoginInfo,
     responses(
         (status = 200, description = "List all stocks successfully", body = [LoginResponse])
@@ -41,17 +38,17 @@ pub async fn login(
 }
 
 /*
- GET USER INFO
+  GET USER INFO
 */
 #[utoipa::path(
     get,
     path ="/info",
     tag = "user",
-    params(
-        ("authorization" = String, Header, description = "Bearer token") // Document header
+    security(
+        ("bearer_auth" = [])
     ),
     responses(
-        (status = 200, description = "List all stocks successfully", body = [LoginInfo])
+        (status = 200, description = "User info retrieved successfully", body = String)
     )
 )]
 pub async fn get_info(header_map: HeaderMap) -> Result<Json<String>, StatusCode> {
