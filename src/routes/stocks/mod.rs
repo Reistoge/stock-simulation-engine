@@ -19,10 +19,12 @@ use types::{CreateStockPayload, StockQueryFilters};
     get,
     path ="/{ticker}",
     tag = "stocks",
+    security(
+        ("bearer_auth" = [])
+    ),
     params(
         StockQueryFilters,
-        ("ticker" = String, Path, description = "The stock ticker symbol"),
-        ("authorization" = String, Header, description = "Bearer token") // Document header
+        ("ticker" = String, Path, description = "The stock ticker symbol")
     ),
     responses(
         (status = 200, description = "List all stocks successfully")
@@ -44,10 +46,10 @@ async fn get_stocks(
     post,
     path = "",
     tag = "stocks",
-    request_body = CreateStockPayload, // Document the JSON body
-    params(
-         ("authorization" = String, Header, description = "Bearer token") // Document header
+    security(
+        ("bearer_auth" = [])
     ),
+    request_body = CreateStockPayload, // Document the JSON body
     responses(
         (status = 201, description = "Create a stock successfully"),
         (status = 400, description = "model_type does not match extra_params")
