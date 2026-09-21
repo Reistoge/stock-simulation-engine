@@ -2,11 +2,12 @@
 use axum::{
     Json,
     extract::{Path, Query},
-    http::HeaderMap,
+    http::{HeaderMap, StatusCode},
 };
 // stocks.rs
 use utoipa_axum::{router::OpenApiRouter, routes};
 
+use crate::db::schema::stock::ModelType;
 use crate::routes::AppState;
 
 pub mod types;
@@ -44,13 +45,35 @@ async fn get_stocks(
     path = "",
     tag = "stocks",
     request_body = CreateStockPayload, // Document the JSON body
+    params(
+         ("authorization" = String, Header, description = "Bearer token") // Document header
+    ),
     responses(
-        (status = 201, description = "Create a stock successfully")
+        (status = 201, description = "Create a stock successfully"),
+        (status = 400, description = "model_type does not match extra_params")
     )
 )]
-async fn post_stocks(Json(payload): Json<CreateStockPayload>) -> String {
+async fn post_stocks(
+    headers: HeaderMap,
+    Json(payload): Json<CreateStockPayload>,
+) -> Result<String, StatusCode> {
     println!("Hit the post_stocks Controller");
-    format!("Created stock {} at ${}", payload.ticker, payload.price)
+    let _auth = headers.get("authorization").and_then(|v| v.to_str().ok());
+    if _auth.is_none() {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    if ModelType::from_params(&payload.extra_params) != payload.model_type {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    Ok(format!(
+        "Created stock {} ({}) at ${} (drift {}, vol {}, model {:?})",
+        payload.ticker,
+        payload.name,
+        payload.initial_price,
+        payload.drift,
+        payload.volatility,
+        payload.model_type
+    ))
 }
 
 pub fn init() -> OpenApiRouter<AppState> {
