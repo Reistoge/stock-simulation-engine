@@ -7,7 +7,6 @@ use axum::{
 // stocks.rs
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::db::schema::stock::ModelType;
 use crate::routes::AppState;
 
 pub mod types;
@@ -64,17 +63,13 @@ async fn post_stocks(
     if _auth.is_none() {
         return Err(StatusCode::UNAUTHORIZED);
     }
-    if ModelType::from_params(&payload.extra_params) != payload.model_type {
-        return Err(StatusCode::BAD_REQUEST);
-    }
     Ok(format!(
-        "Created stock {} ({}) at ${} (drift {}, vol {}, model {:?})",
+        "Created stock {} ({}) at ${} (drift {}, vol {})",
         payload.ticker,
         payload.name,
         payload.initial_price,
         payload.drift,
         payload.volatility,
-        payload.model_type
     ))
 }
 
