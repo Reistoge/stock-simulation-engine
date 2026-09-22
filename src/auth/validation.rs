@@ -76,6 +76,7 @@ mod tests {
 
     #[test]
     fn create_jwt_and_validate_roundtrip() {
+        setup();
         let email = "test@example.com";
         let token = create_jwt(email).expect("JWT creation should succeed");
         let claims = validate_jwt(&token).expect("JWT validation should succeed");
@@ -84,12 +85,14 @@ mod tests {
 
     #[test]
     fn validate_jwt_rejects_invalid_token() {
+        setup();
         let result = validate_jwt("invalid.token.here");
         assert!(matches!(result, Err(StatusCode::UNAUTHORIZED)));
     }
 
     #[test]
     fn validate_jwt_rejects_expired_token() {
+        setup();
         // We can't easily create an expired token without time manipulation,
         // but we can test that validation fails for malformed tokens
         let result = validate_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiZXhwIjoxfQ.invalid");
