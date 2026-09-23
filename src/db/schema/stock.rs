@@ -8,7 +8,7 @@ use jiff::Timestamp;
 pub struct Stock {
     #[key]
     #[auto]
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
 
     #[column(type = varchar(100))]
     name: String,

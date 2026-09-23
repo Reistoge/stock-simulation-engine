@@ -76,30 +76,30 @@ pub struct SimulationParams {
 pub struct Simulation {
     #[key]
     #[auto]
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
 
     /// The stochastic model type used for this simulation.
-    model_type: ModelType,
+    pub model_type: ModelType,
 
     /// How long the simulation ran, in years (e.g. 1.0 for 1 year).
-    time_horizon: f64,
+    pub time_horizon: f64,
 
     /// Resolution of the simulated path (e.g. 1000 ticks).
-    steps: u32,
+    pub steps: u32,
 
     /// The PRNG seed that produced the path; replaying seed + parameters
     /// regenerates the exact same array in the engine.
-    random_seed: i64,
-    stock_id: Option<uuid::Uuid>,
+    pub random_seed: i64,
+    pub stock_id: Option<uuid::Uuid>,
     #[belongs_to]
-    stock: toasty::Deferred<Option<Stock>>,
+    pub stock: toasty::Deferred<Option<Stock>>,
 
     /// Frozen copy of the simulation parameters at run time.
     #[column(type = jsonb)]
-    parameters: toasty::Json<SimulationParams>,
+    pub parameters: toasty::Json<SimulationParams>,
 
     #[default(Timestamp::now())]
-    created_at: Timestamp,
+    pub created_at: Timestamp,
     #[update(Timestamp::now())]
-    updated_at: Timestamp,
+    pub updated_at: Timestamp,
 }

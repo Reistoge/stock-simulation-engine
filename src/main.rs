@@ -3,7 +3,9 @@ use std::env;
 use dotenv::dotenv;
 use std::result::Result::Ok;
 use stock_simulation_engine::{
-    db, repositories::user::UserRepositoryImpl, routes, routes::AppState,
+    db, 
+    repositories::{user::UserRepositoryImpl, simulation::SimulationRepositoryImpl}, 
+    routes, routes::AppState,
 };
 
 #[tokio::main]
@@ -26,7 +28,8 @@ async fn main() {
     println!("VERSION: {version}");
     // build our application with a single route, injecting the UserRepository
     let app_state = AppState {
-        user_repository: UserRepositoryImpl::new(db),
+        user_repository: UserRepositoryImpl::new(db.clone()),
+        simulation_repository: SimulationRepositoryImpl::new(db),
     };
     let app = routes::build_routes(app_state);
     // run our app with hyper, listening globally on port 3000
