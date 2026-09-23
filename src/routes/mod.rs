@@ -7,10 +7,12 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::repositories::user::UserRepositoryImpl;
+use crate::repositories::simulation::SimulationRepositoryImpl;
 
 mod user;
 mod swagger;
 mod stocks;
+mod simulation;
 mod websocket; // standard axum::Router for now
 
 // Shared application state. Repositories are injected into the handlers
@@ -18,14 +20,16 @@ mod websocket; // standard axum::Router for now
 #[derive(Clone)]
 pub struct AppState {
     pub user_repository: UserRepositoryImpl,
+    pub simulation_repository: SimulationRepositoryImpl,
 }
 
 pub fn build_routes(app_state: AppState) -> Router {
 
     // 1. Build the OpenApiRouter and nest your OpenAPI-documented modules
     let (router, api) = OpenApiRouter::<AppState>::with_openapi(swagger::ApiDoc::openapi())
-        .nest("/stocks",stocks::init())
+        .nest("/stocks", stocks::init())
         .nest("/user", user::init())
+        .nest("/simulations", simulation::init())
         .split_for_parts();
 
     // 2. The `router` is now a standard axum::Router. Merge undocumented routes and SwaggerUI.
