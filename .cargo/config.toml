@@ -1,0 +1,10 @@
+# Focused coverage suite: unit-testable code only (engine, service, auth).
+# Excluded as redundant for unit coverage:
+# - main.rs, bin/      -> binary entrypoints, wiring only (cli has test = false)
+# - db/                -> toasty models + connection init, needs live Postgres
+# - repositories/      -> DB-backed impls, need live Postgres (traits covered
+#                         via mocks in service tests)
+# - routes/            -> thin HTTP handlers + swagger, coverage(off) on nightly
+[alias]
+coverage = "llvm-cov --summary-only --ignore-filename-regex (main\\.rs|bin/|db/|repositories/|routes/)"
+coverage-open = "llvm-cov --open --ignore-filename-regex (main\\.rs|bin/|db/|repositories/|routes/)"
