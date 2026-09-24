@@ -12,6 +12,12 @@ pub trait SimulationRepository: Send + Sync {
         limit: Option<u32>,
         offset: Option<u32>,
     ) -> Result<Vec<Simulation>, toasty::Error>;
+    async fn list_by_stock_id(
+        &mut self,
+        stock_id: uuid::Uuid,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<Vec<Simulation>, toasty::Error>;
     async fn create(
         &mut self,
         model_type: ModelType,
@@ -52,6 +58,25 @@ impl SimulationRepository for SimulationRepositoryImpl {
         } else {
             Simulation::all()
         };
+        
+        if let Some(lim) = limit {
+            query = query.limit(lim as usize);
+        }
+        
+        if let Some(off) = offset {
+            query = query.offset(off as usize);
+        }
+        
+        query.exec(&mut self.db).await
+    }
+
+    async fn list_by_stock_id(
+        &mut self,
+        stock_id: uuid::Uuid,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<Vec<Simulation>, toasty::Error> {
+        let mut query = Simulation::filter(Simulation::fields().stock_id().eq(stock_id));
         
         if let Some(lim) = limit {
             query = query.limit(lim as usize);

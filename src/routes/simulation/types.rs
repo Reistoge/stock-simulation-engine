@@ -10,12 +10,14 @@ pub struct CreateSimulationPayload {
     pub steps: u32,
     pub random_seed: i64,
     pub stock_id: Option<uuid::Uuid>,
-    pub parameters: SimulationParamsPayload,
+    pub initial_price: f64,
+    pub drift: f64,
+    pub volatility: f64,
+    pub extra_params: ModelParams,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct SimulationParamsPayload {
-    pub model_type: ModelType,
     pub initial_price: f64,
     pub drift: f64,
     pub volatility: f64,
@@ -25,7 +27,6 @@ pub struct SimulationParamsPayload {
 impl From<SimulationParamsPayload> for crate::db::schema::simulation::SimulationParams {
     fn from(payload: SimulationParamsPayload) -> Self {
         Self {
-            model_type: payload.model_type,
             initial_price: payload.initial_price,
             drift: payload.drift,
             volatility: payload.volatility,
@@ -58,7 +59,6 @@ pub struct SimulationResponse {
 impl From<crate::db::schema::simulation::Simulation> for SimulationResponse {
     fn from(sim: crate::db::schema::simulation::Simulation) -> Self {
         let params: SimulationParamsPayload = SimulationParamsPayload {
-            model_type: sim.parameters.model_type,
             initial_price: sim.parameters.initial_price,
             drift: sim.parameters.drift,
             volatility: sim.parameters.volatility,
