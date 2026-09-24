@@ -4,7 +4,7 @@ use dotenv::dotenv;
 use std::result::Result::Ok;
 use stock_simulation_engine::{
     db, 
-    repositories::{user::UserRepositoryImpl, simulation::SimulationRepositoryImpl}, 
+    repositories::{user::UserRepositoryImpl, simulation::SimulationRepositoryImpl, profile::ProfileRepositoryImpl, stock::StockRepositoryImpl}, 
     routes, routes::AppState,
 };
 
@@ -29,7 +29,9 @@ async fn main() {
     // build our application with a single route, injecting the UserRepository
     let app_state = AppState {
         user_repository: UserRepositoryImpl::new(db.clone()),
-        simulation_repository: SimulationRepositoryImpl::new(db),
+        profile_repository: ProfileRepositoryImpl::new(db.clone()),
+        simulation_repository: SimulationRepositoryImpl::new(db.clone()),
+        stock_repository: StockRepositoryImpl::new(db),
     };
     let app = routes::build_routes(app_state);
     // run our app with hyper, listening globally on port 3000

@@ -8,11 +8,14 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::repositories::user::UserRepositoryImpl;
 use crate::repositories::simulation::SimulationRepositoryImpl;
+use crate::repositories::profile::ProfileRepositoryImpl;
+use crate::repositories::stock::StockRepositoryImpl;
 
 mod user;
 mod swagger;
 mod stocks;
 mod simulation;
+mod profile;
 mod websocket; // standard axum::Router for now
 
 // Shared application state. Repositories are injected into the handlers
@@ -20,7 +23,9 @@ mod websocket; // standard axum::Router for now
 #[derive(Clone)]
 pub struct AppState {
     pub user_repository: UserRepositoryImpl,
+    pub profile_repository: ProfileRepositoryImpl,
     pub simulation_repository: SimulationRepositoryImpl,
+    pub stock_repository: StockRepositoryImpl,
 }
 
 pub fn build_routes(app_state: AppState) -> Router {
@@ -30,6 +35,7 @@ pub fn build_routes(app_state: AppState) -> Router {
         .nest("/stocks", stocks::init())
         .nest("/user", user::init())
         .nest("/simulations", simulation::init())
+        .nest("/profile", profile::init())
         .split_for_parts();
 
     // 2. The `router` is now a standard axum::Router. Merge undocumented routes and SwaggerUI.

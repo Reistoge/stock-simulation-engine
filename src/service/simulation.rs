@@ -29,7 +29,19 @@ impl<R: SimulationRepository> SimulationService<R> {
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }
-    
+
+    pub async fn list_by_stock_id(
+        mut self,
+        stock_id: uuid::Uuid,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<Vec<Simulation>, StatusCode> {
+        self.repo
+            .list_by_stock_id(stock_id, limit, offset)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+     
     pub async fn create(
         mut self,
         model_type: ModelType,
@@ -88,7 +100,6 @@ mod tests {
 
     fn sample_params() -> SimulationParams {
         SimulationParams {
-            model_type: ModelType::Gbm,
             initial_price: 100.0,
             drift: 0.05,
             volatility: 0.2,
@@ -196,5 +207,39 @@ mod tests {
         let result = service.get_by_id(test_id).await;
 
         assert!(matches!(result, Err(StatusCode::NOT_FOUND)));
+    }
+
+    #[tokio::test]
+    async fn list_by_stock_id_success() {
+        let mut repo = MockSimulationRepository::new();
+        let stock_id = Uuid::new_v4();
+        let sim_id = Uuid::new_v4();
+        let params = sample_params();
+
+        let simulation = Simulation {
+            id: sim_id,
+            model_type: ModelType::Gbm,
+            time_horizon: 1.0,
+            steps: 1000,
+            random_seed: 42,
+            stock_id: Some(stock_id),
+            stock: Default::default(),
+            parameters: toasty::Json(params),
+            created_at: Default::default(),
+            updated_at: Default::default(),
+        };
+
+        repo.expect_list_by_stock_id()
+            .with(eq(stock_id), eq(Some(10)), eq(Some(0)))
+            .times(1)
+            .returning(move |_, _, _| Ok(vec![simulation.clone()]));
+
+        let service = SimulationService::new(repo);
+        let result = service.list_by_stock_id(stock_id, Some(10), Some(0)).await;
+
+        assert!(result.is_ok());
+        let sims = result.unwrap();
+        assert_eq!(sims.len(), 1);
+        assert_eq!(sims[0].id, sim_id);
     }
 }
