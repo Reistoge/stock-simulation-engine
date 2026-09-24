@@ -47,9 +47,16 @@ impl<R: UserRepository> UserService<R> {
         Ok(RegisterResponse { id: user_id.to_string() })
     }
 
-    pub async fn get_info(self, token: &str) -> Result<String, StatusCode> {
+    /// Returns the stored username for a valid token.
+    /// Looks the user up by the email claim so renames are reflected; 404 if the user is gone.
+    pub async fn get_info(mut self, token: &str) -> Result<String, StatusCode> {
         let claims = validate_jwt(token)?;
-        Ok(format!("Es válido info: {}", claims.sub))
+        let user = self
+            .repo
+            .find_by_email(&claims.sub)
+            .await
+            .map_err(|_| StatusCode::NOT_FOUND)?;
+        Ok(user.name)
     }
 }
 
