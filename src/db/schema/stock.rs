@@ -1,9 +1,7 @@
 use crate::db::schema::profile::Profile;
 use jiff::Timestamp;
 
-
-
-#[derive(Debug, toasty::Model)]
+#[derive(Debug, Clone, toasty::Model)]
 #[table = "stocks"]
 pub struct Stock {
     #[key]
@@ -11,29 +9,18 @@ pub struct Stock {
     pub id: uuid::Uuid,
 
     #[column(type = varchar(100))]
-    name: String,
+    pub name: String,
 
     #[column(type = varchar(10))]
-    ticker: String,
-
-    // model_type: ModelType,
-
-    initial_price: f64,
-
-    drift: f64,
-
-    volatility: f64,
-
-    // #[column(type = jsonb)]
-    // extra_params: toasty::Json<ModelParams>,
+    pub ticker: String,
 
     #[unique]
-    profile_id: Option<uuid::Uuid>,
+    pub profile_id: Option<uuid::Uuid>,
     #[belongs_to]
-    profile: toasty::Deferred<Option<Profile>>,
+    pub profile: toasty::Deferred<Option<Profile>>,
 
     #[default(Timestamp::now())]
-    created_at: Timestamp,
+    pub created_at: Timestamp,
     #[update(Timestamp::now())]
-    updated_at: Timestamp,
+    pub updated_at: Timestamp,
 }

@@ -8,7 +8,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::routes::AppState;
 use crate::routes::simulation::types::{
-    CreateSimulationPayload, SimulationQueryFilters, SimulationResponse,
+    CreateSimulationPayload, SimulationQueryFilters, SimulationResponse, SimulationParamsPayload,
 };
 use crate::service::simulation::SimulationService;
 
@@ -42,6 +42,13 @@ async fn create_simulation(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
+    let params: SimulationParamsPayload = SimulationParamsPayload {
+        initial_price: payload.initial_price,
+        drift: payload.drift,
+        volatility: payload.volatility,
+        extra_params: payload.extra_params,
+    };
+
     let service = SimulationService::new(app.simulation_repository);
     let simulation = service
         .create(
@@ -50,7 +57,7 @@ async fn create_simulation(
             payload.steps,
             payload.random_seed,
             payload.stock_id,
-            payload.parameters.into(),
+            params.into(),
         )
         .await?;
 

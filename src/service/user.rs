@@ -38,13 +38,13 @@ impl<R: UserRepository> UserService<R> {
 
         let hash = hash_password(&register_info.password)?;
 
-        let id = self.repo.create(&register_info.username, &register_info.email, &hash).await
+        let (user_id, _profile) = self.repo.create(&register_info.username, &register_info.email, &hash).await
             .map_err(|e| {
                 eprintln!("Error creating user {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
 
-        Ok(RegisterResponse { id: id.to_string() })
+        Ok(RegisterResponse { id: user_id.to_string() })
     }
 
     pub async fn get_info(self, token: &str) -> Result<String, StatusCode> {
@@ -58,6 +58,7 @@ mod tests {
     use super::*;
     use crate::{
         auth::{types::RegisterInfo},
+        db::schema::profile::Profile,
         repositories::user::MockUserRepository,
     };
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -94,7 +95,16 @@ mod tests {
                 Argon2::default()
                     .verify_password(b"correct horse battery staple", &hash)
                     .expect("stored hash must verify against the plaintext");
-                Ok(id)
+                // Create a mock profile
+                let profile = Profile {
+                    id: Uuid::new_v4(),
+                    user_id: Some(id),
+                    user: Default::default(),
+                    stocks: Default::default(),
+                    created_at: Default::default(),
+                    updated_at: Default::default(),
+                };
+                Ok((id, profile))
             });
 
         let service = UserService::new(repo);

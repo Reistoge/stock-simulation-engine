@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 
 use crate::db::schema::user::User;
+use crate::db::schema::profile::Profile;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -13,7 +14,7 @@ pub trait UserRepository: Send + Sync {
         name: &str,
         email: &str,
         password_hash: &str,
-    ) -> Result<uuid::Uuid, toasty::Error>;
+    ) -> Result<(uuid::Uuid, Profile), toasty::Error>;
 }
 
 #[derive(Clone)]
@@ -56,13 +57,22 @@ impl UserRepository for UserRepositoryImpl {
         name: &str,
         email: &str,
         password_hash: &str,
-    ) -> Result<uuid::Uuid, toasty::Error> {
-        User::create()
+    ) -> Result<(uuid::Uuid, Profile), toasty::Error> {
+        let result = User::create()
             .name(name)
             .email(email)
             .password(password_hash)
+            .profile(Profile::create())
             .exec(&mut self.db)
-            .await
-            .map(|user| user.id)
+            .await?;
+        
+        // Get the created profile
+        let profile = Profile::filter(Profile::fields().user_id().eq(result.id))
+            .exec(&mut self.db)
+            .await?
+            .pop()
+            .ok_or(toasty::Error::condition_failed("Profile not created"))?;
+        
+        Ok((result.id, profile))
     }
 }

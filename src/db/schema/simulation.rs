@@ -65,13 +65,12 @@ pub enum ModelParams {
 /// simulation replays.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct SimulationParams {
-    pub model_type: ModelType,
     pub initial_price: f64,
     pub drift: f64,
     pub volatility: f64,
     pub extra_params: ModelParams,
 }
-#[derive(Debug, toasty::Model)]
+#[derive(Debug, Clone, toasty::Model)]
 #[table = "simulations"]
 pub struct Simulation {
     #[key]
