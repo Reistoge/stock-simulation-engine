@@ -25,10 +25,12 @@ pub struct RegisterInfo{
 
 }
 
+/// JWT claims: `sub` is the email for display, `user_id` is the UUID used for scoping.
 #[derive(Serialize,Deserialize)]
 pub struct Claims {
     pub sub : String,
     pub exp : usize,
+    pub user_id : String,
 }
 
 #[derive(Serialize, ToSchema)]

@@ -1,8 +1,9 @@
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use chrono::Utc;
 
 use crate::auth::types::Claims;
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 
 fn jwt_secret() -> String {
     std::env::var("JWT_SECRET").expect("JWT_SECRET var should be set")
@@ -23,10 +24,13 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool, StatusCode> {
         .is_ok())
 }
 
-pub fn create_jwt(email: &str) -> Result<String, StatusCode> {
+/// Creates a signed JWT valid for 1 hour.
+/// Keeps `sub` as the email for display and `user_id` as the UUID used for auth scoping.
+pub fn create_jwt(email: &str, user_id: &str) -> Result<String, StatusCode> {
     let claims = Claims {
         sub: email.to_string(),
-        exp: (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
+        exp: (Utc::now() + chrono::Duration::hours(1)).timestamp() as usize,
+        user_id: user_id.to_string(),
     };
     encode(
         &Header::default(),
@@ -39,17 +43,43 @@ pub fn create_jwt(email: &str) -> Result<String, StatusCode> {
     })
 }
 
+/// Validates JWT signature and requires a non-expired `exp` claim.
+/// Missing or expired `exp` maps to 401 so callers never accept stale tokens.
 pub fn validate_jwt(token: &str) -> Result<Claims, StatusCode> {
+    let mut validation = Validation::default();
+    validation.set_required_spec_claims(&["exp"]);
+
     decode::<Claims>(
         token,
         &DecodingKey::from_secret(jwt_secret().as_ref()),
-        &Validation::default(),
+        &validation,
     )
     .map(|data| data.claims)
     .map_err(|e| {
         eprintln!("Error validating token {}", e);
         StatusCode::UNAUTHORIZED
     })
+}
+
+/// Extracts the raw token from an `Authorization: Bearer <token>` header.
+/// Centralizes prefix stripping so routes reject malformed headers with 401 instead of panicking.
+pub fn extract_bearer_token(headers: &HeaderMap) -> Result<String, StatusCode> {
+    headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .map(|s| s.to_string())
+        .ok_or(StatusCode::UNAUTHORIZED)
+}
+
+/// Validates the token and returns the `user_id` claim as UUID.
+/// Uses `user_id` (not `sub`, which holds the email) so valid login tokens parse correctly.
+pub fn extract_user_id_from_token(token: &str) -> Result<uuid::Uuid, StatusCode> {
+    let claims = validate_jwt(token)?;
+    claims
+        .user_id
+        .parse::<uuid::Uuid>()
+        .map_err(|_| StatusCode::UNAUTHORIZED)
 }
 
 #[cfg(test)]
@@ -78,9 +108,11 @@ mod tests {
     fn create_jwt_and_validate_roundtrip() {
         setup();
         let email = "test@example.com";
-        let token = create_jwt(email).expect("JWT creation should succeed");
+        let user_id = "123e4567-e89b-12d3-a456-426614174000"; // UUID as string
+        let token = create_jwt(email, user_id).expect("JWT creation should succeed");
         let claims = validate_jwt(&token).expect("JWT validation should succeed");
         assert_eq!(claims.sub, email);
+        assert_eq!(claims.user_id, user_id);
     }
 
     #[test]
@@ -93,9 +125,20 @@ mod tests {
     #[test]
     fn validate_jwt_rejects_expired_token() {
         setup();
-        // We can't easily create an expired token without time manipulation,
-        // but we can test that validation fails for malformed tokens
-        let result = validate_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiZXhwIjoxfQ.invalid");
+        // Create a token with an expiration time in the past
+        let claims = Claims {
+            sub: "test@example.com".to_string(),
+            exp: (Utc::now() - chrono::Duration::hours(1)).timestamp() as usize, // expired 1 hour ago
+            user_id: "123e4567-e89b-12d3-a456-426614174000".to_string(),
+        };
+        let token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(jwt_secret().as_ref()),
+        )
+        .expect("token creation should succeed");
+        // This token should be rejected because it's expired
+        let result = validate_jwt(&token);
         assert!(matches!(result, Err(StatusCode::UNAUTHORIZED)));
     }
 

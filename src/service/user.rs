@@ -22,7 +22,7 @@ impl<R: UserRepository> UserService<R> {
             return Err(StatusCode::UNAUTHORIZED);
         }
 
-        let token = create_jwt(&login_info.email)?;
+        let token = create_jwt(&login_info.email, &user.id.to_string())?;
         Ok(LoginResponse { token })
     }
 
@@ -48,8 +48,8 @@ impl<R: UserRepository> UserService<R> {
     }
 
     pub async fn get_info(self, token: &str) -> Result<String, StatusCode> {
-        let _claims = validate_jwt(token)?;
-        Ok("Es válido info: ".to_string())
+        let claims = validate_jwt(token)?;
+        Ok(format!("Es válido info: {}", claims.sub))
     }
 }
 
