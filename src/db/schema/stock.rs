@@ -14,7 +14,7 @@ pub struct Stock {
     #[column(type = varchar(10))]
     pub ticker: String,
 
-    #[unique]
+    #[index]
     pub profile_id: Option<uuid::Uuid>,
     #[belongs_to]
     pub profile: toasty::Deferred<Option<Profile>>,

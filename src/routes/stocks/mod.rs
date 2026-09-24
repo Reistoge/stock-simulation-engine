@@ -11,14 +11,25 @@ use crate::routes::AppState;
 use crate::service::simulation::SimulationService;
 use crate::service::stock::StockService;
 use crate::auth::validation::{extract_bearer_token, extract_user_id_from_token};
+use crate::repositories::profile::ProfileRepository;
 
 pub mod types;
 use types::{CreateStockPayload, UpdateStockPayload, StockQueryFilters, StockResponse};
 use crate::routes::simulation::types::SimulationResponse;
 
-fn extract_profile_id(headers: &HeaderMap) -> Result<uuid::Uuid, StatusCode> {
+// `Stock.profile_id` references `profiles.id`, which is NOT the same as the
+// user's own id — `Profile.id` is a separate auto-generated key, linked to
+// the user via `Profile.user_id`. This resolves the JWT's user id to the
+// user's actual profile id, instead of (incorrectly) using the user id itself.
+async fn extract_profile_id(app: &AppState, headers: &HeaderMap) -> Result<uuid::Uuid, StatusCode> {
     let token = extract_bearer_token(headers)?;
-    extract_user_id_from_token(&token)
+    let user_id = extract_user_id_from_token(&token)?;
+    app.profile_repository
+        .clone()
+        .find_by_user_id(user_id)
+        .await
+        .map(|profile| profile.id)
+        .map_err(|_| StatusCode::NOT_FOUND)
 }
 
 /*
@@ -44,7 +55,7 @@ async fn post_stocks(
     headers: HeaderMap,
     Json(payload): Json<CreateStockPayload>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    let profile_id = extract_profile_id(&headers)?;
+    let profile_id = extract_profile_id(&app, &headers).await?;
 
     let service = StockService::new(app.stock_repository);
     let stock = service
@@ -86,7 +97,7 @@ async fn patch_stock(
     Path(id): Path<String>,
     Json(payload): Json<UpdateStockPayload>,
 ) -> Result<Json<StockResponse>, StatusCode> {
-    let profile_id = extract_profile_id(&headers)?;
+    let profile_id = extract_profile_id(&app, &headers).await?;
     let id = uuid::Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     let service = StockService::new(app.stock_repository);
@@ -125,7 +136,7 @@ async fn get_stock_by_ticker(
     headers: HeaderMap,
     Path(ticker): Path<String>,
 ) -> Result<Json<StockResponse>, StatusCode> {
-    let profile_id = extract_profile_id(&headers)?;
+    let profile_id = extract_profile_id(&app, &headers).await?;
 
     let service = StockService::new(app.stock_repository);
     let stock = service.get_by_ticker(profile_id, ticker).await?;
@@ -157,7 +168,7 @@ async fn get_stock_by_id(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> Result<Json<StockResponse>, StatusCode> {
-    let profile_id = extract_profile_id(&headers)?;
+    let profile_id = extract_profile_id(&app, &headers).await?;
     let id = uuid::Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     let service = StockService::new(app.stock_repository);
@@ -190,7 +201,7 @@ async fn list_stocks(
     headers: HeaderMap,
     Query(filters): Query<StockQueryFilters>,
 ) -> Result<Json<Vec<StockResponse>>, StatusCode> {
-    let profile_id = extract_profile_id(&headers)?;
+    let profile_id = extract_profile_id(&app, &headers).await?;
 
     let service = StockService::new(app.stock_repository);
     let stocks = service
@@ -228,7 +239,7 @@ async fn get_stock_simulations(
     Path(id): Path<String>,
     Query(filters): Query<StockQueryFilters>,
 ) -> Result<Json<Vec<SimulationResponse>>, StatusCode> {
-    let profile_id = extract_profile_id(&headers)?;
+    let profile_id = extract_profile_id(&app, &headers).await?;
     let stock_id = uuid::Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // First verify the stock belongs to the profile
@@ -270,7 +281,7 @@ async fn delete_stock(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
-    let profile_id = extract_profile_id(&headers)?;
+    let profile_id = extract_profile_id(&app, &headers).await?;
     let id = uuid::Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     let service = StockService::new(app.stock_repository);

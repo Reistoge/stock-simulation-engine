@@ -19,3 +19,8 @@ snapshot_name = "0002_snapshot.toml"
 id = 452600738465184114
 name = "0003_migration.sql"
 snapshot_name = "0003_snapshot.toml"
+
+[[migrations]]
+id = 5853304647418316566
+name = "0004_remove_stock_profile_id_unique.sql"
+snapshot_name = "0004_snapshot.toml"
