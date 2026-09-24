@@ -11,6 +11,7 @@ use crate::routes::simulation::types::{
     CreateSimulationPayload, SimulationQueryFilters, SimulationResponse, SimulationParamsPayload,
 };
 use crate::service::simulation::SimulationService;
+use crate::auth::validation::{extract_bearer_token, validate_jwt};
 
 pub mod types;
 
@@ -37,10 +38,8 @@ async fn create_simulation(
     headers: axum::http::HeaderMap,
     Json(payload): Json<CreateSimulationPayload>,
 ) -> Result<Json<SimulationResponse>, StatusCode> {
-    let _auth = headers.get("authorization").and_then(|v| v.to_str().ok());
-    if _auth.is_none() {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
+    let token = extract_bearer_token(&headers)?;
+    validate_jwt(&token)?;
 
     let params: SimulationParamsPayload = SimulationParamsPayload {
         initial_price: payload.initial_price,
@@ -88,11 +87,9 @@ async fn get_simulation(
     headers: axum::http::HeaderMap,
     Path(id): Path<String>,
 ) -> Result<Json<SimulationResponse>, StatusCode> {
+    let token = extract_bearer_token(&headers)?;
+    validate_jwt(&token)?;
     let id = uuid::Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let _auth = headers.get("authorization").and_then(|v| v.to_str().ok());
-    if _auth.is_none() {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
 
     let service = SimulationService::new(app.simulation_repository);
     let simulation = service.get_by_id(id).await?;
@@ -124,10 +121,8 @@ async fn list_simulations(
     headers: axum::http::HeaderMap,
     Query(filters): Query<SimulationQueryFilters>,
 ) -> Result<Json<Vec<SimulationResponse>>, StatusCode> {
-    let _auth = headers.get("authorization").and_then(|v| v.to_str().ok());
-    if _auth.is_none() {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
+    let token = extract_bearer_token(&headers)?;
+    validate_jwt(&token)?;
 
     let service = SimulationService::new(app.simulation_repository);
     let simulations = service
@@ -162,11 +157,9 @@ async fn delete_simulation(
     headers: axum::http::HeaderMap,
     Path(id): Path<String>,
 ) -> Result<StatusCode, StatusCode> {
+    let token = extract_bearer_token(&headers)?;
+    validate_jwt(&token)?;
     let id = uuid::Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let _auth = headers.get("authorization").and_then(|v| v.to_str().ok());
-    if _auth.is_none() {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
 
     let service = SimulationService::new(app.simulation_repository);
     service.delete(id).await?;

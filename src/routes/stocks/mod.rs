@@ -10,20 +10,15 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use crate::routes::AppState;
 use crate::service::simulation::SimulationService;
 use crate::service::stock::StockService;
+use crate::auth::validation::{extract_bearer_token, extract_user_id_from_token};
 
 pub mod types;
 use types::{CreateStockPayload, UpdateStockPayload, StockQueryFilters, StockResponse};
 use crate::routes::simulation::types::SimulationResponse;
 
 fn extract_profile_id(headers: &HeaderMap) -> Result<uuid::Uuid, StatusCode> {
-    headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.strip_prefix("Bearer "))
-        .ok_or(StatusCode::UNAUTHORIZED)
-        .and_then(|token| {
-            uuid::Uuid::parse_str(token).map_err(|_| StatusCode::UNAUTHORIZED)
-        })
+    let token = extract_bearer_token(headers)?;
+    extract_user_id_from_token(&token)
 }
 
 /*

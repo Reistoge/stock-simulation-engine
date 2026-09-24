@@ -7,6 +7,7 @@ use axum::{
 use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::auth::types::{LoginInfo, LoginResponse, RegisterInfo, RegisterResponse};
+use crate::auth::validation::extract_bearer_token;
 use crate::routes::AppState;
 use crate::service::user::UserService;
 
@@ -51,14 +52,10 @@ pub async fn get_info(
     header_map: HeaderMap,
 ) -> Result<Json<String>, StatusCode> {
     println!("Hit the get info controller");
-    let token = header_map
-        .get("Authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.strip_prefix("Bearer "))
-        .ok_or(StatusCode::UNAUTHORIZED)?;
+    let token = extract_bearer_token(&header_map)?;
 
     let service = UserService::new(app.user_repository);
-    let info = service.get_info(token).await?;
+    let info = service.get_info(&token).await?;
     Ok(Json(info))
 }
 

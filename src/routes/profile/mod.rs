@@ -8,6 +8,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::routes::AppState;
 use crate::service::profile::ProfileService;
+use crate::auth::validation::{extract_bearer_token, extract_user_id_from_token};
 
 pub mod types;
 use types::{ProfileWithData};
@@ -45,16 +46,8 @@ async fn get_profile(
 }
 
 fn extract_user_id(headers: &HeaderMap) -> Result<uuid::Uuid, StatusCode> {
-    headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| s.strip_prefix("Bearer "))
-        .ok_or(StatusCode::UNAUTHORIZED)
-        .and_then(|token| {
-            // For now, we'll parse the token as a UUID (simplified)
-            // In a real implementation, this would validate the JWT and extract user_id
-            uuid::Uuid::parse_str(token).map_err(|_| StatusCode::UNAUTHORIZED)
-        })
+    let token = extract_bearer_token(headers)?;
+    extract_user_id_from_token(&token)
 }
 
 pub fn init() -> OpenApiRouter<AppState> {
