@@ -1,7 +1,8 @@
 #![cfg_attr(coverage_nightly, coverage(off))]
 use axum::Router;
 
-use tower_http::cors::CorsLayer;
+use axum::http::header;
+use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
@@ -43,8 +44,16 @@ pub fn build_routes(app_state: AppState) -> Router {
         .nest("/ws", websocket::init()) // Use .nest or .merge depending on your websocket router setup
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api))
         // Allow the Angular dev server to call this API from a different origin.
-        // TODO: restrict this to your real frontend origin(s) before deploying.
-        .layer(CorsLayer::permissive())
+        // `Access-Control-Allow-Headers: *` (CorsLayer::permissive()) does NOT
+        // cover `Authorization` per the CORS spec — it must be listed explicitly,
+        // or authenticated requests (e.g. GET /profile) get blocked by the browser.
+        // TODO: restrict allow_origin to your real frontend origin(s) before deploying.
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]),
+        )
         // 3. Provide the shared `AppState` (with its repositories) to every handler's
         // `State<AppState>` extractor, and convert `Router<AppState>` into the
         // stateless `Router<()>` axum::serve expects.
