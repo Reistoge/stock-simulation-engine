@@ -1,0 +1,11 @@
+# Keep the build context small: the binary is compiled from scratch
+# inside the image, so local artifacts, history, and secrets stay out.
+target/
+.git/
+.github/
+.env
+.env.prod
+.env.*.local
+*.log
+.vscode/
+flycheck0

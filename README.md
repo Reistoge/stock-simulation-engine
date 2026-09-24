@@ -3,21 +3,21 @@
 Rust API using axum and stochastic mathematician models to simulate stocks in realtime.
 
 Implemented features
-- [ ] API
+- [X] API
     - [x] Axum template
     - [x] Routing
-    - [ ] Data models
+    - [X] Data models
     - [X] User Authentication
-    - [ ] Payload
+    - [X] Payload
 - [ ] Websocket
     - [X] Ws template
     - [ ] Real time traffic data
-- [ ] Engine
-    - [ ] State behaviours
-    - [ ] Core algorithms
-- [ ] Pipeline
-    - [ ] Github action
-- [ ] Testing
+- [X] Engine
+    - [X] State behaviours
+    - [X] Core algorithms
+- [X] Pipeline
+    - [X] Github action
+- [X] Testing
 - [X] Swagger
 
 
