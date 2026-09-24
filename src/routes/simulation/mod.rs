@@ -9,6 +9,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use crate::routes::AppState;
 use crate::routes::simulation::types::{
     CreateSimulationPayload, SimulationQueryFilters, SimulationResponse, SimulationParamsPayload,
+    TicksResponse,
 };
 use crate::service::simulation::SimulationService;
 use crate::auth::validation::{extract_bearer_token, validate_jwt};
@@ -167,10 +168,55 @@ async fn delete_simulation(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/*
+    GET SIMULATION TICKS
+*/
+#[utoipa::path(
+    get,
+    path = "/{id}/ticks",
+    tag = "simulations",
+    security(
+        ("bearer_auth" = [])
+    ),
+    params(
+        ("id" = String, Path, description = "Simulation ID")
+    ),
+    responses(
+        (status = 200, description = "Replayed price path", body = TicksResponse),
+        (status = 400, description = "Invalid simulation id or parameters"),
+        (status = 401, description = "Unauthorized"),
+        (status = 404, description = "Simulation not found"),
+        (status = 413, description = "Path too large")
+    )
+)]
+async fn get_simulation_ticks(
+    State(app): State<AppState>,
+    headers: axum::http::HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<TicksResponse>, StatusCode> {
+    let token = extract_bearer_token(&headers)?;
+    validate_jwt(&token)?;
+    let id = uuid::Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let service = SimulationService::new(app.simulation_repository);
+    let result = service.ticks(id).await?;
+
+    Ok(Json(TicksResponse {
+        simulation_id: result.simulation.id,
+        model_type: result.simulation.model_type,
+        time_horizon: result.simulation.time_horizon,
+        steps: result.simulation.steps,
+        random_seed: result.simulation.random_seed,
+        ticks: result.ticks,
+        times: result.times,
+    }))
+}
+
 pub fn init() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(create_simulation))
         .routes(routes!(get_simulation))
+        .routes(routes!(get_simulation_ticks))
         .routes(routes!(list_simulations))
         .routes(routes!(delete_simulation))
 }

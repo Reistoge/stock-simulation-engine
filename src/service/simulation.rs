@@ -1,6 +1,15 @@
 use crate::db::schema::simulation::{ModelType, Simulation, SimulationParams};
+use crate::engine::{MAX_TICKS_STEPS, generate_ticks};
 use crate::repositories::simulation::SimulationRepository;
 use axum::http::StatusCode;
+
+/// Replayed path for one simulation: the stored row plus derived arrays.
+/// Ticks are never persisted; they are regenerated from seed + parameters.
+pub struct SimulationTicks {
+    pub simulation: Simulation,
+    pub ticks: Vec<f64>,
+    pub times: Vec<f64>,
+}
 
 pub struct SimulationService<R: SimulationRepository> {
     repo: R,
@@ -86,6 +95,28 @@ impl<R: SimulationRepository> SimulationService<R> {
             .delete(id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+    }
+
+    /// Replay a stored simulation's price path from its seed + parameters.
+    ///
+    /// Returns 404 for unknown ids, 400 for invalid stored config, and 413
+    /// when the stored step count exceeds the per-response cap.
+    pub async fn ticks(mut self, id: uuid::Uuid) -> Result<SimulationTicks, StatusCode> {
+        let simulation = self.repo.find_by_id(id).await.map_err(|_| StatusCode::NOT_FOUND)?;
+
+        if simulation.time_horizon <= 0.0 || simulation.steps == 0 {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        if simulation.steps > MAX_TICKS_STEPS {
+            return Err(StatusCode::PAYLOAD_TOO_LARGE);
+        }
+
+        let (ticks, times) = generate_ticks(&simulation);
+        Ok(SimulationTicks {
+            simulation,
+            ticks,
+            times,
+        })
     }
 }
 

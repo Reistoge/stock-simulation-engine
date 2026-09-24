@@ -56,6 +56,18 @@ pub struct SimulationResponse {
     pub updated_at: String,
 }
 
+/// Replayed price path for one simulation (derived, never stored).
+#[derive(Serialize, ToSchema)]
+pub struct TicksResponse {
+    pub simulation_id: uuid::Uuid,
+    pub model_type: ModelType,
+    pub time_horizon: f64,
+    pub steps: u32,
+    pub random_seed: i64,
+    pub ticks: Vec<f64>,
+    pub times: Vec<f64>,
+}
+
 impl From<crate::db::schema::simulation::Simulation> for SimulationResponse {
     fn from(sim: crate::db::schema::simulation::Simulation) -> Self {
         let params: SimulationParamsPayload = SimulationParamsPayload {
